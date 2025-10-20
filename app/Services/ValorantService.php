@@ -20,7 +20,7 @@ class ValorantService
 		return Cache::store('redis')->remember('valorant:skins', 3600, function () {
 			$res = Http::timeout(10)->get($this->endpoint);
 
-			if (! $res->successful()) {
+			if (!$res->successful()) {
 				throw new \RuntimeException('Failed to fetch Valorant API');
 			}
 

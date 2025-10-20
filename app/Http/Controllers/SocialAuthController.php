@@ -3,37 +3,64 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use Illuminate\Http\Request;
 use Laravel\Socialite\Facades\Socialite;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Auth;
 
 class SocialAuthController extends Controller
 {
-	public function redirect($provider)
+	public function redirect(string $provider)
 	{
-		// stateless for SPA or issues with sessions during redirect
+		if (!in_array($provider, ['google', 'github'])) {
+			return redirect(route('login'))->withErrors(['Unsupported provider']);
+		}
+
 		return Socialite::driver($provider)->redirect();
 	}
 
-	public function callback(Request $request, $provider)
+	public function callback(string $provider)
 	{
-		// retrieve user from provider
-		$socialUser = Socialite::driver($provider)->user();
+		if (!in_array($provider, ['google', 'github'])) {
+			return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/login?error=unsupported_provider');
+		}
 
-		// find or create user
-		$user = User::firstOrCreate(
-			['provider' => $provider, 'provider_id' => $socialUser->getId()],
-			[
-				'email' => $socialUser->getEmail(),
-				'name' => $socialUser->getName() ?: $socialUser->getNickname() ?: 'Unknown',
-				'password' => bcrypt(Str::random(24)), // random password
-			]
-		);
+		try {
+			$socialUser = Socialite::driver($provider)->user();
 
-		// login and create session cookie for Sanctum
-		auth()->login($user);
+			// First try to find user by provider_name + provider_id
+			$user = User::where('provider_name', $provider)
+				->where('provider_id', $socialUser->getId())
+				->first();
 
-		// return small HTML view that posts message to opener (SPA popup)
-		return view('oauth.callback', ['user' => $user]);
+			// If not found, try to find by email (user might have signed up with different provider)
+			if (!$user) {
+				$user = User::where('email', $socialUser->getEmail())->first();
+			}
+
+			// If user exists, update their OAuth info
+			if ($user) {
+				$user->update([
+					'provider_name'          => $provider,
+					'provider_id'            => $socialUser->getId(),
+					'provider_token'         => $socialUser->token,
+					'provider_refresh_token' => $socialUser->refreshToken,
+				]);
+			} else {
+				// Create new user
+				$user = User::create([
+					'provider_name'          => $provider,
+					'provider_id'            => $socialUser->getId(),
+					'name'                   => $socialUser->getName() ?? $socialUser->getNickname() ?? 'User',
+					'email'                  => $socialUser->getEmail(),
+					'provider_token'         => $socialUser->token,
+					'provider_refresh_token' => $socialUser->refreshToken,
+				]);
+			}
+
+			Auth::login($user);
+			// Redirect to frontend callback page
+			return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/auth/callback');
+		} catch (\Exception $e) {
+			return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/login?error=authentication_failed');
+		}
 	}
 }
