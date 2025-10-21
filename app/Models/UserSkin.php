@@ -7,11 +7,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class UserSkin extends Model
 {
     protected $fillable = [
-        'user_id', 'skin_uuid', 'chroma_uuid', 'level_uuid', 'owned', 'wishlist', 'metadata'
+        'user_id', 'skin_uuid', 'owned', 'wishlist', 'metadata'
+        // 'chroma_uuid', 'level_uuid' - add these when columns exist in database
     ];
 
     protected $casts = [
-        'owned' => 'boolean',
+        'owned'    => 'boolean',
         'wishlist' => 'boolean',
         'metadata' => 'array',
     ];

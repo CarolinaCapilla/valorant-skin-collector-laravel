@@ -10,11 +10,8 @@ class UserSkinCollectionController extends Controller
 {
 	public function index(Request $request)
 	{
-		$user = Auth::user();
+		$query = UserSkin::where('user_id', Auth::id())->orderBy('created_at', 'desc');
 
-		$query = UserSkin::where('user_id', $user->id)->orderBy('created_at', 'desc');
-
-		// optional filters: owned or wishlist
 		if ($request->has('owned')) {
 			$query->where('owned', (bool) $request->get('owned'));
 		}
@@ -22,50 +19,93 @@ class UserSkinCollectionController extends Controller
 			$query->where('wishlist', (bool) $request->get('wishlist'));
 		}
 
-		$data = $query->get();
-
-		return response()->json(['data' => $data]);
+		return response()->json(['data' => $query->get()]);
 	}
 
 	public function store(Request $request)
 	{
-		$user = $request->user();
-
 		$data = $request->validate([
-			'skin_uuid'   => 'required|string',
-			'chroma_uuid' => 'nullable|string',
-			'level_uuid'  => 'nullable|string',
-			'owned'       => 'boolean',
-			'wishlist'    => 'boolean',
-			'metadata'    => 'nullable|array',
+			'skin_uuid'             => 'required|string',
+			'favorite_chroma_uuid'  => 'nullable|string',
+			'owned'                 => 'boolean',
+			'wishlist'              => 'boolean',
 		]);
 
-		// upsert by unique key (user_id, skin_uuid, chroma_uuid)
+		// Build metadata JSON
+		$metadata = [];
+		if (!empty($data['favorite_chroma_uuid'])) {
+			$metadata['favorite_chroma_uuid'] = $data['favorite_chroma_uuid'];
+		}
+
 		$entry = UserSkin::updateOrCreate(
 			[
-				'user_id'     => $user->id,
-				'skin_uuid'   => $data['skin_uuid'],
-				'chroma_uuid' => $data['chroma_uuid'] ?? null,
+				'user_id'   => Auth::id(),
+				'skin_uuid' => $data['skin_uuid'],
 			],
 			[
-				'level_uuid' => $data['level_uuid'] ?? null,
-				'owned'      => $data['owned'] ?? true,
-				'wishlist'   => $data['wishlist'] ?? false,
-				'metadata'   => $data['metadata'] ?? null,
+				'owned'    => $data['owned'] ?? true,
+				'wishlist' => $data['wishlist'] ?? false,
+				'metadata' => !empty($metadata) ? $metadata : null,
 			]
 		);
 
 		return response()->json($entry, 201);
 	}
 
-	public function destroy(Request $request, $id)
+	public function destroyBySkin(Request $request)
 	{
-		$user = $request->user();
+		$skinUuid = $request->query('skin_uuid') ?? $request->input('skin_uuid');
 
-		$entry = UserSkin::where('id', $id)->where('user_id', $user->id)->firstOrFail();
+		if (!$skinUuid) {
+			return response()->json(['message' => 'skin_uuid is required'], 400);
+		}
 
-		$entry->delete();
+		$deleted = UserSkin::where('user_id', Auth::id())
+			->where('skin_uuid', $skinUuid)
+			->delete();
 
-		return response()->json(['message' => 'Deleted']);
+		return response()->json(['message' => 'Deleted', 'count' => $deleted]);
+	}
+
+	public function addToWishlist(Request $request)
+	{
+		$data = $request->validate([
+			'skin_uuid'            => 'required|string',
+			'favorite_chroma_uuid' => 'nullable|string',
+		]);
+
+		// Build metadata JSON
+		$metadata = [];
+		if (!empty($data['favorite_chroma_uuid'])) {
+			$metadata['favorite_chroma_uuid'] = $data['favorite_chroma_uuid'];
+		}
+
+		$entry = UserSkin::updateOrCreate(
+			[
+				'user_id'   => Auth::id(),
+				'skin_uuid' => $data['skin_uuid'],
+			],
+			[
+				'wishlist' => true,
+				'metadata' => !empty($metadata) ? $metadata : null,
+			]
+		);
+
+		return response()->json($entry, 201);
+	}
+
+	public function removeFromWishlist(Request $request)
+	{
+		$skinUuid = $request->query('skin_uuid') ?? $request->input('skin_uuid');
+
+		if (!$skinUuid) {
+			return response()->json(['message' => 'skin_uuid is required'], 400);
+		}
+
+		$updated = UserSkin::where('user_id', Auth::id())
+			->where('skin_uuid', $skinUuid)
+			->update(['wishlist' => false]);
+
+		return response()->json(['message' => 'Removed from wishlist', 'updated' => $updated]);
 	}
 }

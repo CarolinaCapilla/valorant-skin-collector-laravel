@@ -31,12 +31,16 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 	// Dictionary public routes
 	Route::get('/skins', [SkinsController::class, 'index'])->name('skins.index');
 
-	Route::middleware('auth:sanctum')->group(function () {
+	Route::middleware(['web', 'auth:sanctum'])->group(function () {
 		Route::get('/me', [AuthController::class, 'me'])->name('me');
 
 		# user collection routes
 		Route::get('/user/collection', [UserSkinCollectionController::class, 'index'])->name('user.collection.index');
 		Route::post('/user/collection', [UserSkinCollectionController::class, 'store'])->name('user.collection.store');
-		Route::delete('/user/collection/{id}', [UserSkinCollectionController::class, 'destroy'])->name('user.collection.destroy');
+		Route::delete('/user/collection/skin', [UserSkinCollectionController::class, 'destroyBySkin'])->name('user.collection.destroy.skin');
+
+		# wishlist routes
+		Route::post('/user/wishlist', [UserSkinCollectionController::class, 'addToWishlist'])->name('user.wishlist.add');
+		Route::delete('/user/wishlist/skin', [UserSkinCollectionController::class, 'removeFromWishlist'])->name('user.wishlist.remove');
 	});
 });
