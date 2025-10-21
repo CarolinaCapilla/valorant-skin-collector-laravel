@@ -3,6 +3,7 @@
 This repository is the backend API for the Valorant Skin Collector project. It's intentionally API-focused (no frontend) and implements user authentication, a cached proxy for the Valorant API, and endpoints to manage a user's skin collection and wishlist.
 
 ## What this service provides
+
 -   Cookie-based SPA authentication using Laravel Sanctum
 -   Social auth (Google / GitHub) integration stubs using Laravel Socialite
 -   `GET /api/v1/skins` — cached proxy to Valorant API (Redis-backed cache)
@@ -67,3 +68,7 @@ docker run -p 6379:6379 --name redis -d redis:7
 ### Disclaimer
 
 Valorant is a trademark of Riot Games. This project is for educational/personal use and is not endorsed by or affiliated with Riot Games.
+
+© 2025 Carolina Moreno Capilla
+Licensed under the Non-Commercial Software License (NCSL).
+Commercial use is prohibited without prior written permission.
