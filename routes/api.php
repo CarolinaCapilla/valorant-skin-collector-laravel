@@ -6,32 +6,26 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserSkinCollectionController;
 use App\Http\Controllers\SkinsController;
 
-
-// Add a route outside of v1 for session-based auth
-Route::get('/user', function () {
-	if (Auth::check()) {
-		return response()->json(['user' => Auth::user()]);
-	}
-	return response()->json(['user' => null], 401);
-})->middleware('web');
+// Health check endpoint for monitoring/deployment verification
+Route::get('/health', function () {
+	return response()->json([
+		'status' => 'healthy',
+		'timestamp' => now()->toIso8601String(),
+		'service' => 'valorant-skin-collector-api'
+	]);
+});
 
 Route::prefix('v1')->name('api.v1.')->group(function () {
-	// CSRF cookie endpoint - required for Sanctum SPA auth
-	Route::get('/sanctum/csrf-cookie', function () {
-		return response()->json(['message' => 'CSRF cookie set']);
-	})->middleware('web');
+	// Public auth routes - no middleware needed for token-based auth
+	Route::post('/register', [AuthController::class, 'register'])->name('register');
+	Route::post('/login', [AuthController::class, 'login'])->name('login');
 
-	// Auth routes with web middleware for Sanctum cookie-based auth
-	Route::middleware('web')->group(function () {
-		Route::post('/register', [AuthController::class, 'register'])->name('register');
-		Route::post('/login', [AuthController::class, 'login'])->name('login');
-		Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
-	});
-
-	// Dictionary public routes
+	// Public routes
 	Route::get('/skins', [SkinsController::class, 'index'])->name('skins.index');
 
-	Route::middleware(['web', 'auth:sanctum'])->group(function () {
+	// Protected routes - require Sanctum token authentication
+	Route::middleware('auth:sanctum')->group(function () {
+		Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 		Route::get('/me', [AuthController::class, 'me'])->name('me');
 
 		# user collection routes

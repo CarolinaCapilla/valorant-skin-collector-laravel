@@ -24,36 +24,38 @@ class AuthController extends Controller
             'password' => bcrypt($data['password']),
         ]);
 
-        Auth::login($user);
+        // Create API token for cross-domain authentication
+        $token = $user->createToken('auth-token')->plainTextToken;
 
-        return response()->json(['user' => $user], 201);
+        return response()->json([
+            'user' => $user,
+            'token' => $token
+        ], 201);
     }
 
     public function login(Request $request)
     {
         $request->validate(['email' => 'required|email', 'password' => 'required']);
 
-        // For SPA cookie flow, ensure we call /sanctum/csrf-cookie from frontend first
         $user = User::where('email', $request->email)->first();
 
         if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages(['email' => ['The provided credentials are incorrect.']]);
         }
 
-        Auth::login($user);
+        // Create API token for cross-domain authentication
+        $token = $user->createToken('auth-token')->plainTextToken;
 
-        return response()->json(['user' => $user]);
+        return response()->json([
+            'user' => $user,
+            'token' => $token
+        ]);
     }
 
     public function logout(Request $request)
     {
-        Auth::logout();
-
-        // Only invalidate session if it exists (for web routes with session middleware)
-        if ($request->hasSession()) {
-            $request->session()->invalidate();
-            $request->session()->regenerateToken();
-        }
+        // Delete current access token
+        $request->user()->currentAccessToken()->delete();
 
         return response()->json(['message' => 'Logged out']);
     }

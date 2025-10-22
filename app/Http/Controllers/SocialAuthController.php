@@ -11,7 +11,7 @@ class SocialAuthController extends Controller
 	public function redirect(string $provider)
 	{
 		if (!in_array($provider, ['google', 'github'])) {
-			return redirect(route('login'))->withErrors(['Unsupported provider']);
+			return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/auth/login?error=unsupported_provider');
 		}
 
 		return Socialite::driver($provider)->redirect();
@@ -56,11 +56,13 @@ class SocialAuthController extends Controller
 				]);
 			}
 
-			Auth::login($user);
-			// Redirect to frontend callback page
-			return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/auth/callback');
+			// Create Sanctum API token for token-based auth
+			$token = $user->createToken('oauth-token')->plainTextToken;
+
+			// Redirect to frontend callback page with token
+			return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/auth/callback?token=' . $token);
 		} catch (\Exception $e) {
-			return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/login?error=authentication_failed');
+			return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/auth/login?error=authentication_failed');
 		}
 	}
 }
