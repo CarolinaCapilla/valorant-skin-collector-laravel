@@ -36,6 +36,17 @@ RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cac
 RUN a2enmod rewrite
 RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf
 
+# Add Apache configuration to allow .htaccess overrides
+RUN echo '<Directory /var/www/html/public>\n\
+    AllowOverride All\n\
+    Require all granted\n\
+</Directory>' >> /etc/apache2/sites-available/000-default.conf
+
+# Enable error reporting in PHP
+RUN echo "display_errors = On" >> /usr/local/etc/php/conf.d/error-reporting.ini
+RUN echo "error_reporting = E_ALL" >> /usr/local/etc/php/conf.d/error-reporting.ini
+RUN echo "log_errors = On" >> /usr/local/etc/php/conf.d/error-reporting.ini
+
 # Expose port
 EXPOSE 80
 
