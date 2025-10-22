@@ -42,5 +42,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 		# wishlist routes
 		Route::post('/user/wishlist', [UserSkinCollectionController::class, 'addToWishlist'])->name('user.wishlist.add');
 		Route::delete('/user/wishlist/skin', [UserSkinCollectionController::class, 'removeFromWishlist'])->name('user.wishlist.remove');
+
+		# favorite chroma routes
+		Route::patch('/user/collection/favorite-chroma', [UserSkinCollectionController::class, 'updateFavoriteChroma'])->name('user.collection.update.favorite.chroma');
 	});
 });

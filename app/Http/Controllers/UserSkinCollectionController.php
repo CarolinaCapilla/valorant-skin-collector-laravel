@@ -108,4 +108,29 @@ class UserSkinCollectionController extends Controller
 
 		return response()->json(['message' => 'Removed from wishlist', 'updated' => $updated]);
 	}
+
+	public function updateFavoriteChroma(Request $request)
+	{
+		$data = $request->validate([
+			'skin_uuid'            => 'required|string',
+			'favorite_chroma_uuid' => 'required|string',
+		]);
+
+		$userSkin = UserSkin::where('user_id', Auth::id())
+			->where('skin_uuid', $data['skin_uuid'])
+			->first();
+
+		if (!$userSkin) {
+			return response()->json(['message' => 'Skin not found in collection'], 404);
+		}
+
+		// Update metadata with new favorite chroma
+		$metadata = $userSkin->metadata ?? [];
+		$metadata['favorite_chroma_uuid'] = $data['favorite_chroma_uuid'];
+
+		$userSkin->metadata = $metadata;
+		$userSkin->save();
+
+		return response()->json($userSkin);
+	}
 }
