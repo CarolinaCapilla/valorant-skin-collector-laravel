@@ -1,0 +1,50 @@
+# ===================================================================
+# COPY-PASTE THESE VARIABLES INTO RAILWAY
+# ===================================================================
+# Go to: Railway Project → Your Laravel Service → Variables tab
+# Click "Raw Editor" and paste everything below
+# ===================================================================
+
+APP_NAME=Valorant Skin Collector
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=${{RAILWAY_PUBLIC_DOMAIN}}
+
+# ⚠️ IMPORTANT: Generate this locally by running:
+#    cd valorant-skin-collector-backend
+#    php artisan key:generate --show
+# Then replace the line below with the output:
+APP_KEY=base64:REPLACE_WITH_YOUR_GENERATED_KEY
+
+# Database - Railway auto-injects if you linked MySQL service
+# If not linked, get connection URL from MySQL service → Connect tab
+DATABASE_URL=${{MYSQL_URL}}
+
+# Cache & Session (using file cache for better performance than database)
+CACHE_DRIVER=file
+SESSION_DRIVER=database
+QUEUE_CONNECTION=database
+
+# Logging
+LOG_CHANNEL=stack
+LOG_LEVEL=error
+
+# Frontend URL - Update with your actual Vercel domain after deployment
+# Multiple domains separated by commas
+FRONTEND_URL=https://valorant-skin-collector.vercel.app,http://localhost:3000
+
+# ===================================================================
+# OPTIONAL: Social OAuth (if you have Google/GitHub login)
+# ===================================================================
+# GOOGLE_CLIENT_ID=
+# GOOGLE_CLIENT_SECRET=
+# GOOGLE_REDIRECT_URI=
+# GITHUB_CLIENT_ID=
+# GITHUB_CLIENT_SECRET=
+# GITHUB_REDIRECT_URI=
+
+# ===================================================================
+# OPTIONAL: Redis Cache (if you add Redis service - $5/mo)
+# ===================================================================
+# CACHE_DRIVER=redis
+# REDIS_URL=${{REDIS.REDIS_URL}}
