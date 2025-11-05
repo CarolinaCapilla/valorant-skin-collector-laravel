@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class SocialAuthController extends Controller
 {
@@ -13,6 +14,15 @@ class SocialAuthController extends Controller
 		if (!in_array($provider, ['google', 'github'])) {
 			return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/auth/login?error=unsupported_provider');
 		}
+
+		Log::info("OAuth redirect initiated", [
+			'provider' => $provider,
+			'config' => [
+				'client_id' => config("services.{$provider}.client_id") ? 'SET' : 'NOT SET',
+				'client_secret' => config("services.{$provider}.client_secret") ? 'SET' : 'NOT SET',
+				'redirect' => config("services.{$provider}.redirect"),
+			]
+		]);
 
 		return Socialite::driver($provider)->redirect();
 	}
@@ -23,8 +33,24 @@ class SocialAuthController extends Controller
 			return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/login?error=unsupported_provider');
 		}
 
+		Log::info("OAuth callback received", [
+			'provider' => $provider,
+			'config' => [
+				'client_id' => config("services.{$provider}.client_id") ? 'SET' : 'NOT SET',
+				'client_secret' => config("services.{$provider}.client_secret") ? 'SET' : 'NOT SET',
+				'redirect' => config("services.{$provider}.redirect"),
+			]
+		]);
+
 		try {
 			$socialUser = Socialite::driver($provider)->user();
+
+			Log::info("OAuth user data retrieved successfully", [
+				'provider' => $provider,
+				'user_id' => $socialUser->getId(),
+				'email' => $socialUser->getEmail(),
+				'name' => $socialUser->getName(),
+			]);
 
 			// First try to find user by provider_name + provider_id
 			$user = User::where('provider_name', $provider)
@@ -60,9 +86,21 @@ class SocialAuthController extends Controller
 			$token = $user->createToken('oauth-token')->plainTextToken;
 
 			// Redirect to frontend callback page with token
+			Log::info("OAuth authentication successful, redirecting to frontend", [
+				'provider' => $provider,
+				'user_id' => $user->id,
+			]);
+
 			return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/auth/callback?token=' . $token);
 		} catch (\Exception $e) {
-			return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/auth/login?error=authentication_failed');
+			Log::error("OAuth authentication failed", [
+				'provider' => $provider,
+				'error' => $e->getMessage(),
+				'error_class' => get_class($e),
+				'trace' => $e->getTraceAsString(),
+			]);
+
+			return redirect(env('FRONTEND_URL', 'http://localhost:3000') . '/auth/login?error=authentication_failed&message=' . urlencode($e->getMessage()));
 		}
 	}
 }
